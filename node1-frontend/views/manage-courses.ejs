@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Courses - Enrollment System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+  <%- include('partials/navbar', { user }) %>
+  <div class="container mt-4">
+    <h2>Manage Courses</h2>
+    
+    <% if (success) { %>
+      <div class="alert alert-success alert-dismissible fade show">
+        <% if (success === 'course_added') { %>Course added successfully!<% } %>
+        <% if (success === 'course_deleted') { %>Course deleted successfully!<% } %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <% } %>
+
+    <!-- Add New Course Form -->
+    <div class="card mb-4">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Add New Course</h5>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="/add-course">
+          <div class="row">
+            <div class="col-md-3 mb-3">
+              <label class="form-label">Course Code *</label>
+              <input type="text" class="form-control" name="code" placeholder="e.g., CS103" required>
+            </div>
+            <div class="col-md-5 mb-3">
+              <label class="form-label">Course Name *</label>
+              <input type="text" class="form-control" name="name" placeholder="e.g., Web Development" required>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Available Slots</label>
+              <input type="number" class="form-control" name="availableSlots" value="30" min="0">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea class="form-control" name="description" rows="2" placeholder="Brief course description"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">Add Course</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Courses List -->
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">All Courses</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <% courses.forEach(course => { %>
+          <div class="col-md-6 mb-3">
+            <div class="card h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <h5 class="card-title"><%= course.code %> - <%= course.name %></h5>
+                    <p class="card-text text-muted"><%= course.description %></p>
+                    <p class="mb-0">
+                      <span class="badge bg-info">Slots: <%= course.availableSlots %></span>
+                      <span class="badge bg-secondary">ID: <%= course.id %></span>
+                    </p>
+                  </div>
+                  <form method="POST" action="/delete-course" onsubmit="return confirm('Are you sure you want to delete this course? All enrollments will be removed.');">
+                    <input type="hidden" name="courseId" value="<%= course.id %>">
+                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+          <% }) %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

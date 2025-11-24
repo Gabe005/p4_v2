@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Enrollments - Enrollment System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+  <%- include('partials/navbar', { user }) %>
+  <div class="container mt-4">
+    <h2>Manage Student Enrollments</h2>
+    
+    <% if (success) { %>
+      <div class="alert alert-success alert-dismissible fade show">
+        <% if (success === 'student_dropped') { %>Student dropped from course successfully!<% } %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <% } %>
+    
+    <% if (error) { %>
+      <div class="alert alert-danger alert-dismissible fade show">
+        <%= error %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <% } %>
+
+    <!-- Drop Student Form -->
+    <div class="card mb-4">
+      <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0">Drop Student from Course</h5>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="/drop-student" onsubmit="return confirm('Are you sure you want to drop this student from the course?');">
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Student ID *</label>
+              <input type="number" class="form-control" name="studentId" placeholder="Enter student user ID" required>
+              <small class="text-muted">The numeric user ID of the student</small>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Course *</label>
+              <select class="form-control" name="courseId" required>
+                <option value="">Select a course</option>
+                <% courses.forEach(course => { %>
+                  <option value="<%= course.id %>"><%= course.code %> - <%= course.name %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="col-md-2 mb-3 d-flex align-items-end">
+              <button type="submit" class="btn btn-warning w-100">Drop Student</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Course List -->
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Available Courses</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <% courses.forEach(course => { %>
+          <div class="col-md-6 mb-3">
+            <div class="card">
+              <div class="card-body">
+                <h6 class="card-title"><%= course.code %> - <%= course.name %></h6>
+                <p class="card-text text-muted small"><%= course.description %></p>
+                <span class="badge bg-info">Course ID: <%= course.id %></span>
+                <span class="badge bg-secondary">Slots: <%= course.availableSlots %></span>
+              </div>
+            </div>
+          </div>
+          <% }) %>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-info mt-4">
+      <strong>Note:</strong> To find a student's ID, an admin can view the user list. Student IDs are displayed there.
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
