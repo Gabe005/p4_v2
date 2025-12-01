@@ -2,8 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 
-const { startGrpcServer } = require('./grpc-server');
-
 const app = express();
 const PORT = 3003;
 
@@ -77,8 +75,6 @@ app.post('/api/grades/upload', (req, res) => {
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'grades' });
 });
-
-startGrpcServer();
 
 app.listen(PORT, () => {
   console.log('========================================');
