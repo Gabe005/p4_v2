@@ -1,12 +1,13 @@
 const express = require('express');
-const axios = require('axios');
 const cookieParser = require('cookie-parser');
 const path = require('path');
+const grpcClients = require('./grpc-clients');
 
 const app = express();
 const PORT = 3000;
 
-// Hardcode service URLs
+// For VM deployment, update these to actual VM IPs
+// For localhost testing, keep as localhost
 const AUTH_SERVICE = 'http://localhost:3001';
 const COURSE_SERVICE = 'http://localhost:3002';
 const GRADE_SERVICE = 'http://localhost:3003';
@@ -18,7 +19,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Middleware to check authentication
+// Middleware to check authentication using gRPC
 const authMiddleware = async (req, res, next) => {
   const token = req.cookies.token;
   if (!token) {
@@ -26,10 +27,17 @@ const authMiddleware = async (req, res, next) => {
   }
 
   try {
-    const response = await axios.post(`${AUTH_SERVICE}/api/auth/verify`, { token });
-    req.user = response.data.user;
+    const response = await grpcClients.auth.verifyToken({ token });
+    
+    if (!response.valid) {
+      res.clearCookie('token');
+      return res.redirect('/login');
+    }
+    
+    req.user = response.user;
     next();
   } catch (error) {
+    console.error('[gRPC] Auth verification error:', error.message);
     res.clearCookie('token');
     return res.redirect('/login');
   }
@@ -44,18 +52,27 @@ app.get('/login', (req, res) => {
   res.render('login', { error: null });
 });
 
+// Login using gRPC
 app.post('/login', async (req, res) => {
-  console.log('Login attempt:', req.body.username);
+  console.log('[gRPC] Login attempt:', req.body.username);
   
   try {
-    const response = await axios.post(`${AUTH_SERVICE}/api/auth/login`, req.body);
-    console.log('Login successful');
+    const response = await grpcClients.auth.login({
+      username: req.body.username,
+      password: req.body.password
+    });
     
-    res.cookie('token', response.data.token, { httpOnly: true });
+    if (!response.success) {
+      console.log('[gRPC] Login failed:', response.error);
+      return res.render('login', { error: response.error || 'Invalid credentials' });
+    }
+    
+    console.log('[gRPC] Login successful');
+    res.cookie('token', response.token, { httpOnly: true });
     res.redirect('/dashboard');
   } catch (error) {
-    console.error('Login failed:', error.message);
-    res.render('login', { error: 'Invalid credentials' });
+    console.error('[gRPC] Login error:', error.message);
+    res.render('login', { error: 'Service unavailable. Please try again.' });
   }
 });
 
@@ -68,269 +85,347 @@ app.get('/dashboard', authMiddleware, (req, res) => {
   res.render('dashboard', { user: req.user });
 });
 
+// Courses using gRPC
 app.get('/courses', authMiddleware, async (req, res) => {
   try {
-    const coursesResponse = await axios.get(`${COURSE_SERVICE}/api/courses`);
-    const enrolledResponse = await axios.get(`${COURSE_SERVICE}/api/courses/enrolled/${req.user.userId}`);
+    const coursesResponse = await grpcClients.courses.getAllCourses({});
+    const enrolledResponse = await grpcClients.courses.getEnrolledCourses({ 
+      userId: req.user.userId 
+    });
     
     res.render('courses', {
       user: req.user,
-      courses: coursesResponse.data,
-      enrolled: enrolledResponse.data,
-      success: req.query.success,
-    });
-  } catch (error) {
-    res.render('courses', {
-      user: req.user,
-      courses: [],
-      enrolled: [],
-      error: req.query.success
-    });
-  }
-});
-
-app.post('/enroll', authMiddleware, async (req, res) => {
-  try {
-    await axios.post(`${COURSE_SERVICE}/api/courses/enroll`, {
-      userId: req.user.userId,
-      courseId: req.body.courseId
-    });
-    res.redirect('/courses');
-  } catch (error) {
-    res.redirect('/courses?error=enrollment_failed');
-  }
-});
-
-app.get('/grades', authMiddleware, async (req, res) => {
-  if (req.user.role !== 'student') {
-    return res.redirect('/dashboard');
-  }
-
-  try {
-    const response = await axios.get(`${GRADE_SERVICE}/api/grades/${req.user.userId}`);
-    res.render('grades', { user: req.user, grades: response.data });
-  } catch (error) {
-    res.render('grades', { user: req.user, grades: [], error:req.query.success });
-  }
-});
-
-app.get('/upload-grades', authMiddleware, async (req, res) => {
-  if (req.user.role !== 'faculty') {
-    return res.redirect('/dashboard');
-  }
-
-  try {
-    const coursesResponse = await axios.get(`${COURSE_SERVICE}/api/courses`);
-    res.render('upload-grades', { user: req.user, courses: coursesResponse.data });
-  } catch (error) {
-    res.render('upload-grades', { user: req.user, courses: [], error: req.query.success });
-  }
-});
-
-app.post('/upload-grades', authMiddleware, async (req, res) => {
-  if (req.user.role !== 'faculty') {
-    return res.redirect('/dashboard');
-  }
-
-  try {
-    await axios.post(`${GRADE_SERVICE}/api/grades/upload`, {
-      studentId: req.body.studentId,
-      courseId: req.body.courseId,
-      grade: req.body.grade,
-      facultyId: req.user.userId
-    });
-    res.redirect('/upload-grades?success=true');
-  } catch (error) {
-    res.redirect('/upload-grades?error=upload_failed');
-  }
-});
-
-// Register new user (admin only)
-app.post('/api/auth/register', (req, res) => {
-  console.log('Registration attempt:', req.body.username);
-  
-  const { username, password, email, role } = req.body;
-
-  if (!username || !password || !role) {
-    return res.status(400).json({ error: 'Username, password, and role are required' });
-  }
-
-  // Hash the password
-  const hashedPassword = bcrypt.hashSync(password, 10);
-
-  db.run(
-    'INSERT INTO users (username, password, role, email) VALUES (?, ?, ?, ?)',
-    [username, hashedPassword, role, email],
-    function(err) {
-      if (err) {
-        console.error('Registration error:', err);
-        return res.status(400).json({ error: 'Username already exists or database error' });
-      }
-      
-      console.log('✓ User registered:', username);
-      res.json({ 
-        message: 'User registered successfully', 
-        userId: this.lastID,
-        user: { username, role, email }
-      });
-    }
-  );
-});
-
-// Get all users (admin only)
-app.get('/api/auth/users', (req, res) => {
-  db.all('SELECT id, username, role, email, createdAt FROM users ORDER BY id', (err, users) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to fetch users' });
-    }
-    res.json(users);
-  });
-});
-
-// Admin - Manage Users
-app.get('/manage-users', authMiddleware, async (req, res) => {
-  if (req.user.role !== 'admin') {
-    return res.redirect('/dashboard');
-  }
-
-  try {
-    const response = await axios.get(`${AUTH_SERVICE}/api/auth/users`);
-    res.render('manage-users', { user: req.user, users: response.data, success: req.query.success, error: req.query.error });
-  } catch (error) {
-    res.render('manage-users', { user: req.user, users: [], error: req.query.success });
-  }
-});
-
-app.post('/add-user', authMiddleware, async (req, res) => {
-  if (req.user.role !== 'admin') {
-    return res.redirect('/dashboard');
-  }
-
-  try {
-    await axios.post(`${AUTH_SERVICE}/api/auth/register`, req.body);
-    res.redirect('/manage-users?success=user_added');
-  } catch (error) {
-    res.redirect('/manage-users?error=failed_to_add_user');
-  }
-});
-
-// Admin - Manage Courses
-app.get('/manage-courses', authMiddleware, async (req, res) => {
-  if (req.user.role !== 'admin') {
-    return res.redirect('/dashboard');
-  }
-
-  try {
-    const coursesResponse = await axios.get(`${COURSE_SERVICE}/api/courses`);
-    res.render('manage-courses', { 
-      user: req.user, 
-      courses: coursesResponse.data,
+      courses: coursesResponse.courses || [],
+      enrolled: enrolledResponse.courses || [],
       success: req.query.success,
       error: req.query.error
     });
   } catch (error) {
-    res.render('manage-courses', { user: req.user, courses: [],  error: req.query.error });
+    console.error('[gRPC] Courses error:', error.message);
+    res.render('courses', {
+      user: req.user,
+      courses: [],
+      enrolled: [],
+      error: 'Failed to load courses'
+    });
   }
 });
 
-app.post('/add-course', authMiddleware, async (req, res) => {
-  if (req.user.role !== 'admin') {
-    return res.redirect('/dashboard');
-  }
-
+// Enroll using gRPC
+app.post('/enroll', authMiddleware, async (req, res) => {
   try {
-    await axios.post(`${COURSE_SERVICE}/api/courses/add`, req.body);
-    res.redirect('/manage-courses?success=course_added');
+    const response = await grpcClients.courses.enrollInCourse({
+      userId: req.user.userId,
+      courseId: parseInt(req.body.courseId)
+    });
+    
+    if (!response.success) {
+      console.log('[gRPC] Enrollment failed:', response.message);
+      return res.redirect('/courses?error=' + encodeURIComponent(response.message));
+    }
+    
+    console.log('[gRPC] Enrollment successful');
+    res.redirect('/courses?success=enrolled');
   } catch (error) {
-    res.redirect('/manage-courses?error=failed_to_add_course');
+    console.error('[gRPC] Enroll error:', error.message);
+    res.redirect('/courses?error=enrollment_failed');
   }
 });
 
-app.post('/delete-course', authMiddleware, async (req, res) => {
-  if (req.user.role !== 'admin') {
-    return res.redirect('/dashboard');
-  }
-
-  try {
-    await axios.delete(`${COURSE_SERVICE}/api/courses/${req.body.courseId}`);
-    res.redirect('/manage-courses?success=course_deleted');
-  } catch (error) {
-    res.redirect('/manage-courses?error=failed_to_delete_course');
-  }
-});
-
-// Student - Drop Course
+// Drop course using gRPC
 app.post('/drop-course', authMiddleware, async (req, res) => {
   if (req.user.role !== 'student') {
     return res.redirect('/dashboard');
   }
 
   try {
-    await axios.post(`${COURSE_SERVICE}/api/courses/drop`, {
+    const response = await grpcClients.courses.dropCourse({
       userId: req.user.userId,
-      courseId: req.body.courseId
+      courseId: parseInt(req.body.courseId)
     });
+    
+    if (!response.success) {
+      return res.redirect('/courses?error=' + encodeURIComponent(response.message));
+    }
+    
+    console.log('[gRPC] Course dropped successfully');
     res.redirect('/courses?success=course_dropped');
   } catch (error) {
+    console.error('[gRPC] Drop course error:', error.message);
     res.redirect('/courses?error=failed_to_drop_course');
   }
 });
 
-// Faculty - Manage Enrollments
+// Grades using gRPC
+app.get('/grades', authMiddleware, async (req, res) => {
+  if (req.user.role !== 'student') {
+    return res.redirect('/dashboard');
+  }
+
+  try {
+    const response = await grpcClients.grades.getStudentGrades({ 
+      userId: req.user.userId 
+    });
+    
+    res.render('grades', { 
+      user: req.user, 
+      grades: response.grades || [] 
+    });
+  } catch (error) {
+    console.error('[gRPC] Grades error:', error.message);
+    res.render('grades', { 
+      user: req.user, 
+      grades: [], 
+      error: 'Failed to load grades' 
+    });
+  }
+});
+
+// Upload grades page
+app.get('/upload-grades', authMiddleware, async (req, res) => {
+  if (req.user.role !== 'faculty') {
+    return res.redirect('/dashboard');
+  }
+
+  try {
+    const coursesResponse = await grpcClients.courses.getAllCourses({});
+    res.render('upload-grades', { 
+      user: req.user, 
+      courses: coursesResponse.courses || [],
+      success: req.query.success,
+      error: req.query.error
+    });
+  } catch (error) {
+    console.error('[gRPC] Error loading courses:', error.message);
+    res.render('upload-grades', { 
+      user: req.user, 
+      courses: [], 
+      error: 'Failed to load courses' 
+    });
+  }
+});
+
+// Upload grade using gRPC
+app.post('/upload-grades', authMiddleware, async (req, res) => {
+  if (req.user.role !== 'faculty') {
+    return res.redirect('/dashboard');
+  }
+
+  try {
+    const response = await grpcClients.grades.uploadGrade({
+      studentId: parseInt(req.body.studentId),
+      courseId: parseInt(req.body.courseId),
+      grade: req.body.grade,
+      facultyId: req.user.userId
+    });
+    
+    if (!response.success) {
+      return res.redirect('/upload-grades?error=' + encodeURIComponent(response.message));
+    }
+    
+    console.log('[gRPC] Grade uploaded successfully');
+    res.redirect('/upload-grades?success=true');
+  } catch (error) {
+    console.error('[gRPC] Upload grade error:', error.message);
+    res.redirect('/upload-grades?error=upload_failed');
+  }
+});
+
+// Admin - Manage Users using gRPC
+app.get('/manage-users', authMiddleware, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.redirect('/dashboard');
+  }
+
+  try {
+    const response = await grpcClients.auth.getAllUsers({});
+    res.render('manage-users', { 
+      user: req.user, 
+      users: response.users || [], 
+      success: req.query.success, 
+      error: req.query.error 
+    });
+  } catch (error) {
+    console.error('[gRPC] Error loading users:', error.message);
+    res.render('manage-users', { 
+      user: req.user, 
+      users: [], 
+      error: 'Failed to load users' 
+    });
+  }
+});
+
+// Add user using gRPC
+app.post('/add-user', authMiddleware, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.redirect('/dashboard');
+  }
+
+  try {
+    const response = await grpcClients.auth.register({
+      username: req.body.username,
+      password: req.body.password,
+      email: req.body.email || '',
+      role: req.body.role
+    });
+    
+    if (!response.success) {
+      return res.redirect('/manage-users?error=' + encodeURIComponent(response.error));
+    }
+    
+    console.log('[gRPC] User added successfully');
+    res.redirect('/manage-users?success=user_added');
+  } catch (error) {
+    console.error('[gRPC] Add user error:', error.message);
+    res.redirect('/manage-users?error=failed_to_add_user');
+  }
+});
+
+// Admin - Manage Courses using gRPC
+app.get('/manage-courses', authMiddleware, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.redirect('/dashboard');
+  }
+
+  try {
+    const coursesResponse = await grpcClients.courses.getAllCourses({});
+    res.render('manage-courses', { 
+      user: req.user, 
+      courses: coursesResponse.courses || [],
+      success: req.query.success,
+      error: req.query.error
+    });
+  } catch (error) {
+    console.error('[gRPC] Error loading courses:', error.message);
+    res.render('manage-courses', { 
+      user: req.user, 
+      courses: [], 
+      error: 'Failed to load courses' 
+    });
+  }
+});
+
+// Add course using gRPC
+app.post('/add-course', authMiddleware, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.redirect('/dashboard');
+  }
+
+  try {
+    const response = await grpcClients.courses.addCourse({
+      code: req.body.code,
+      name: req.body.name,
+      description: req.body.description || '',
+      availableSlots: parseInt(req.body.availableSlots) || 30
+    });
+    
+    if (!response.success) {
+      return res.redirect('/manage-courses?error=' + encodeURIComponent(response.message));
+    }
+    
+    console.log('[gRPC] Course added successfully');
+    res.redirect('/manage-courses?success=course_added');
+  } catch (error) {
+    console.error('[gRPC] Add course error:', error.message);
+    res.redirect('/manage-courses?error=failed_to_add_course');
+  }
+});
+
+// Delete course using gRPC
+app.post('/delete-course', authMiddleware, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.redirect('/dashboard');
+  }
+
+  try {
+    const response = await grpcClients.courses.deleteCourse({
+      courseId: parseInt(req.body.courseId)
+    });
+    
+    if (!response.success) {
+      return res.redirect('/manage-courses?error=' + encodeURIComponent(response.message));
+    }
+    
+    console.log('[gRPC] Course deleted successfully');
+    res.redirect('/manage-courses?success=course_deleted');
+  } catch (error) {
+    console.error('[gRPC] Delete course error:', error.message);
+    res.redirect('/manage-courses?error=failed_to_delete_course');
+  }
+});
+
+// Faculty - Manage Enrollments using gRPC
 app.get('/manage-enrollments', authMiddleware, async (req, res) => {
   if (req.user.role !== 'faculty') {
     return res.redirect('/dashboard');
   }
 
   try {
-    const coursesResponse = await axios.get(`${COURSE_SERVICE}/api/courses`);
+    const coursesResponse = await grpcClients.courses.getAllCourses({});
     res.render('manage-enrollments', { 
       user: req.user, 
-      courses: coursesResponse.data,
+      courses: coursesResponse.courses || [],
       success: req.query.success,
       error: req.query.error
     });
   } catch (error) {
-    res.render('manage-enrollments', { user: req.user, courses: [], error: 'Failed to load courses' });
+    console.error('[gRPC] Error loading courses:', error.message);
+    res.render('manage-enrollments', { 
+      user: req.user, 
+      courses: [], 
+      error: 'Failed to load courses' 
+    });
   }
 });
 
+// Drop student using gRPC
 app.post('/drop-student', authMiddleware, async (req, res) => {
   if (req.user.role !== 'faculty') {
     return res.redirect('/dashboard');
   }
 
   try {
-    await axios.post(`${COURSE_SERVICE}/api/courses/drop-student`, {
-      studentId: req.body.studentId,
-      courseId: req.body.courseId,
+    const response = await grpcClients.courses.dropStudent({
+      studentId: parseInt(req.body.studentId),
+      courseId: parseInt(req.body.courseId),
       facultyId: req.user.userId
     });
+    
+    if (!response.success) {
+      return res.redirect('/manage-enrollments?error=' + encodeURIComponent(response.message));
+    }
+    
+    console.log('[gRPC] Student dropped successfully');
     res.redirect('/manage-enrollments?success=student_dropped');
   } catch (error) {
+    console.error('[gRPC] Drop student error:', error.message);
     res.redirect('/manage-enrollments?error=failed_to_drop_student');
   }
 });
 
-// Get students in a course
+// Get students in course (AJAX endpoint for faculty)
 app.get('/course-students/:courseId', authMiddleware, async (req, res) => {
   if (req.user.role !== 'faculty' && req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Unauthorized' });
   }
 
   try {
-    const enrollmentsResponse = await axios.get(
-      `${COURSE_SERVICE}/api/courses/${req.params.courseId}/students`
-    );
-    res.json(enrollmentsResponse.data);
+    const response = await grpcClients.courses.getCourseStudents({
+      courseId: parseInt(req.params.courseId)
+    });
+    
+    res.json(response.students || []);
   } catch (error) {
+    console.error('[gRPC] Error loading course students:', error.message);
     res.status(500).json({ error: 'Failed to load students' });
   }
 });
 
-app.listen(PORT, () => {
+// Start server
+app.listen(PORT, '0.0.0.0', () => {
   console.log('========================================');
   console.log(`✓ Frontend service running on port ${PORT}`);
   console.log(`✓ Access at: http://localhost:${PORT}`);
+  console.log(`✓ Using gRPC for inter-service communication`);
   console.log('========================================');
 });

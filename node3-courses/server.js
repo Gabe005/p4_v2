@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 
+const { startGrpcServer } = require('./grpc-server');
+
 const app = express();
 const PORT = 3002;
 
@@ -292,6 +294,8 @@ app.delete('/api/courses/:courseId', (req, res) => {
     });
   });
 });
+
+startGrpcServer();
 
 app.listen(PORT, () => {
   console.log('========================================');
