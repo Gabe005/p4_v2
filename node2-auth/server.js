@@ -4,6 +4,8 @@ const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 
+const { startGrpcServer } = require('./grpc-server');
+
 const app = express();
 const PORT = 3001;
 
@@ -128,10 +130,13 @@ app.get('/api/auth/users', (req, res) => {
   });
 });
 
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'auth', port: PORT });
 });
+
+startGrpcServer();
 
 app.listen(PORT, () => {
   console.log('========================================');

@@ -1,7 +1,7 @@
 @echo off
 echo Starting all services...
 
-start cmd /k "cd node2-auth && node setup-database.js && node server.js"
+start cmd /k "cd node2-auth && node server.js"
 timeout /t 2 /nobreak >nul
 
 start cmd /k "cd node3-courses && node server.js"
