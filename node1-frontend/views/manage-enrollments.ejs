@@ -5,84 +5,421 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Manage Enrollments - Enrollment System</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .student-info {
+      background-color: #fff3cd;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+      display: none;
+      border: 1px solid #ffc107;
+    }
+    .course-info {
+      background-color: #d1ecf1;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+      display: none;
+      border: 1px solid #0dcaf0;
+    }
+    .enrollment-count {
+      background-color: #f8f9fa;
+      color: black;
+      padding: 8px 15px;
+      border-radius: 20px;
+      display: inline-block;
+      margin-left: 10px;
+    }
+  </style>
 </head>
 <body>
   <%- include('partials/navbar', { user }) %>
   <div class="container mt-4">
-    <h2>Manage Student Enrollments</h2>
+    <h2>
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-people me-2" viewBox="0 0 16 16">
+        <path d="M15 14s1 0 1-1-1-4-5-4-5 3-5 4 1 1 1 1h8Zm-7.978-1A.261.261 0 0 1 7 12.996c.001-.264.167-1.03.76-1.72C8.312 10.629 9.282 10 11 10c1.717 0 2.687.63 3.24 1.276.593.69.758 1.457.76 1.72l-.008.002a.274.274 0 0 1-.014.002H7.022ZM11 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm3-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM6.936 9.28a5.88 5.88 0 0 0-1.23-.247A7.35 7.35 0 0 0 5 9c-4 0-5 3-5 4 0 .667.333 1 1 1h4.216A2.238 2.238 0 0 1 5 13c0-1.01.377-2.042 1.09-2.904.243-.294.526-.569.846-.816ZM4.92 10A5.493 5.493 0 0 0 4 13H1c0-.26.164-1.03.76-1.724.545-.636 1.492-1.256 3.16-1.275ZM1.5 5.5a3 3 0 1 1 6 0 3 3 0 0 1-6 0Zm3-2a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"/>
+      </svg>
+      Manage Student Enrollments
+    </h2>
+    <p class="text-muted">Drop students from courses</p>
     
     <% if (success) { %>
       <div class="alert alert-success alert-dismissible fade show">
-        <% if (success === 'student_dropped') { %>Student dropped from course successfully!<% } %>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-circle-fill me-2" viewBox="0 0 16 16">
+          <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+        </svg>
+        <% if (success === 'student_dropped') { %>
+          <strong>Success!</strong> Student has been dropped from the course successfully.
+        <% } %>
       </div>
     <% } %>
     
     <% if (error) { %>
       <div class="alert alert-danger alert-dismissible fade show">
-        <%= error %>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-triangle-fill me-2" viewBox="0 0 16 16">
+          <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+        </svg>
+        <strong>Error!</strong> <%= error %>
       </div>
     <% } %>
 
     <!-- Drop Student Form -->
-    <div class="card mb-4">
+    <div class="card mb-4 shadow">
       <div class="card-header bg-warning text-dark">
-        <h5 class="mb-0">Drop Student from Course</h5>
+        <h5 class="mb-0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-person-dash me-2" viewBox="0 0 16 16">
+            <path d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM11 12h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1 0-1Zm0-7a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM8 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/>
+            <path d="M8.256 14a4.474 4.474 0 0 1-.229-1.004H3c.001-.246.154-.986.832-1.664C4.484 10.68 5.711 10 8 10c.26 0 .507.009.74.025.226-.341.496-.65.804-.918C9.077 9.038 8.564 9 8 9c-5 0-6 3-6 4s1 1 1 1h5.256Z"/>
+          </svg>
+          Drop Student from Course
+        </h5>
       </div>
       <div class="card-body">
-        <form method="POST" action="/drop-student" onsubmit="return confirm('Are you sure you want to drop this student from the course?');">
+        <form method="POST" action="/drop-student" id="dropForm" onsubmit="return confirmDrop()">
           <div class="row">
-            <div class="col-md-4 mb-3">
-              <label class="form-label">Student ID *</label>
-              <input type="number" class="form-control" name="studentId" placeholder="Enter student user ID" required>
-              <small class="text-muted">The numeric user ID of the student</small>
-            </div>
             <div class="col-md-6 mb-3">
-              <label class="form-label">Course *</label>
-              <select class="form-control" name="courseId" required>
-                <option value="">Select a course</option>
+              <label class="form-label fw-bold">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-book me-1" viewBox="0 0 16 16">
+                  <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811V2.828zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z"/>
+                </svg>
+                Select Course *
+              </label>
+              <select class="form-select" name="courseId" id="courseSelect" required onchange="showCourseInfo()">
+                <option value="">-- Choose a course --</option>
                 <% courses.forEach(course => { %>
-                  <option value="<%= course.id %>"><%= course.code %> - <%= course.name %></option>
+                  <option value="<%= course.id %>" 
+                          data-code="<%= course.code %>" 
+                          data-name="<%= course.name %>" 
+                          data-description="<%= course.description %>"
+                          data-slots="<%= course.availableSlots %>">
+                    <%= course.code %> - <%= course.name %>
+                  </option>
                 <% }) %>
               </select>
+              <div id="courseInfo" class="course-info">
+                <small>
+                  <strong>Course Details:</strong><br>
+                  <span id="courseCode"></span><br>
+                  <span id="courseName"></span><br>
+                  <span id="courseSlots"></span><br>
+                  <button type="button" class="btn btn-sm btn-info mt-2" onclick="viewEnrolledStudents()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-eye me-1" viewBox="0 0 16 16">
+                      <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                      <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                    </svg>
+                    View Enrolled Students
+                  </button>
+                </small>
+              </div>
             </div>
-            <div class="col-md-2 mb-3 d-flex align-items-end">
-              <button type="submit" class="btn btn-warning w-100">Drop Student</button>
+            
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person me-1" viewBox="0 0 16 16">
+                  <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
+                </svg>
+                Select Student to Drop *
+              </label>
+              <select class="form-select" name="studentId" id="studentSelect" required onchange="showStudentInfo()">
+                <option value="">-- Choose a student --</option>
+                <% students.forEach(student => { %>
+                  <option value="<%= student.id %>" 
+                          data-username="<%= student.username %>" 
+                          data-email="<%= student.email %>">
+                    <%= student.username %> <% if (student.email) { %>(ID: <%= student.id %>)<% } %>
+                  </option>
+                <% }) %>
+              </select>
+              <div id="studentInfo" class="student-info">
+                <small>
+                  <strong>Selected Student:</strong><br>
+                  <span id="studentUsername"></span><br>
+                  <span id="studentEmail"></span><br>
+                  <span id="studentId"></span>
+                </small>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-12">
+              <div class="alert alert-warning">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-triangle me-2" viewBox="0 0 16 16">
+                  <path d="M7.938 2.016A.13.13 0 0 1 8.002 2a.13.13 0 0 1 .063.016.146.146 0 0 1 .054.057l6.857 11.667c.036.06.035.124.002.183a.163.163 0 0 1-.054.06.116.116 0 0 1-.066.017H1.146a.115.115 0 0 1-.066-.017.163.163 0 0 1-.054-.06.176.176 0 0 1 .002-.183L7.884 2.073a.147.147 0 0 1 .054-.057zm1.044-.45a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566z"/>
+                  <path d="M7.002 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 5.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995z"/>
+                </svg>
+                <strong>Warning:</strong> This action will remove the student from the selected course. The course slot will be freed up for other students.
+              </div>
+              <button type="submit" class="btn btn-warning btn-lg w-100">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-person-x me-2" viewBox="0 0 16 16">
+                  <path d="M11 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM8 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm.256 7a4.474 4.474 0 0 1-.229-1.004H3c.001-.246.154-.986.832-1.664C4.484 10.68 5.711 10 8 10c.26 0 .507.009.740.025.226-.341.496-.65.804-.918C9.077 9.038 8.564 9 8 9c-5 0-6 3-6 4s1 1 1 1h5.256Z"/>
+                  <path d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm-.646-4.854.646.647.646-.647a.5.5 0 0 1 .708.708l-.647.646.647.646a.5.5 0 0 1-.708.708l-.646-.647-.646.647a.5.5 0 0 1-.708-.708l.647-.646-.647-.646a.5.5 0 0 1 .708-.708Z"/>
+                </svg>
+                Drop Student from Course
+              </button>
             </div>
           </div>
         </form>
       </div>
     </div>
 
-    <!-- Course List -->
-    <div class="card">
-      <div class="card-header">
-        <h5 class="mb-0">Available Courses</h5>
-      </div>
-      <div class="card-body">
-        <div class="row">
-          <% courses.forEach(course => { %>
-          <div class="col-md-6 mb-3">
-            <div class="card">
-              <div class="card-body">
-                <h6 class="card-title"><%= course.code %> - <%= course.name %></h6>
-                <p class="card-text text-muted small"><%= course.description %></p>
-                <span class="badge bg-info">Course ID: <%= course.id %></span>
-                <span class="badge bg-secondary">Slots: <%= course.availableSlots %></span>
-              </div>
-            </div>
+    <!-- Course and Student Lists -->
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <div class="card shadow-sm">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-journals me-2" viewBox="0 0 16 16">
+                <path d="M5 0h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2 2 2 0 0 1-2 2H3a2 2 0 0 1-2-2h1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1H1a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v9a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1H3a2 2 0 0 1 2-2z"/>
+                <path d="M1 6v-.5a.5.5 0 0 1 1 0V6h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0V9h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 2.5v.5H.5a.5.5 0 0 0 0 1h2a.5.5 0 0 0 0-1H2v-.5a.5.5 0 0 0-1 0z"/>
+              </svg>
+              Available Courses
+              <span class="enrollment-count"><%= courses.length %> total</span>
+            </h5>
           </div>
-          <% }) %>
+          <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+            <% if (courses.length > 0) { %>
+              <div class="list-group">
+                <% courses.forEach(course => { %>
+                  <div class="list-group-item">
+                    <div class="d-flex w-100 justify-content-between">
+                      <h6 class="mb-1"><%= course.code %></h6>
+                      <small class="text-muted">ID: <%= course.id %></small>
+                    </div>
+                    <p class="mb-1"><%= course.name %></p>
+                    <small class="text-muted">
+                      <span class="badge bg-info"><%= course.availableSlots %> slots available</span>
+                    </small>
+                  </div>
+                <% }) %>
+              </div>
+            <% } else { %>
+              <p class="text-muted text-center">No courses available</p>
+            <% } %>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 mb-3">
+        <div class="card shadow-sm">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-people-fill me-2" viewBox="0 0 16 16">
+                <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7Zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-5.784 6A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216ZM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/>
+              </svg>
+              All Students
+              <span class="enrollment-count"><%= students.length %> total</span>
+            </h5>
+          </div>
+          <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+            <% if (students.length > 0) { %>
+              <div class="list-group">
+                <% students.forEach(student => { %>
+                  <div class="list-group-item">
+                    <div class="d-flex w-100 justify-content-between">
+                      <h6 class="mb-1"><%= student.username %></h6>
+                      <small class="text-muted">ID: <%= student.id %></small>
+                    </div>
+                    <small class="text-muted">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-envelope me-1" viewBox="0 0 16 16">
+                        <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z"/>
+                      </svg>
+                      <%= student.email || 'No email' %>
+                    </small>
+                  </div>
+                <% }) %>
+              </div>
+            <% } else { %>
+              <p class="text-muted text-center">No students found</p>
+            <% } %>
+          </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <div class="alert alert-info mt-4">
-      <strong>Note:</strong> To find a student's ID, an admin can view the user list. Student IDs are displayed there.
+  <!-- Modal for Enrolled Students -->
+  <div class="modal fade" id="enrolledStudentsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-info text-white">
+          <h5 class="modal-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-list-ul me-2" viewBox="0 0 16 16">
+              <path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
+            </svg>
+            Enrolled Students
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div id="enrolledStudentsList">
+            <div class="text-center">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+  <script>
+    function showStudentInfo() {
+      const select = document.getElementById('studentSelect');
+      const option = select.options[select.selectedIndex];
+      const infoDiv = document.getElementById('studentInfo');
+      
+      if (option.value) {
+        const username = option.getAttribute('data-username');
+        const email = option.getAttribute('data-email');
+        const id = option.value;
+        
+        document.getElementById('studentUsername').textContent = 'Username: ' + username;
+        document.getElementById('studentEmail').textContent = 'Email: ' + (email || 'N/A');
+        document.getElementById('studentId').textContent = 'Student ID: ' + id;
+        
+        infoDiv.style.display = 'block';
+      } else {
+        infoDiv.style.display = 'none';
+      }
+    }
+    
+    function showCourseInfo() {
+      const select = document.getElementById('courseSelect');
+      const option = select.options[select.selectedIndex];
+      const infoDiv = document.getElementById('courseInfo');
+      if (option.value) {
+      const code = option.getAttribute('data-code');
+      const name = option.getAttribute('data-name');
+      const slots = option.getAttribute('data-slots');
+      document.getElementById('courseCode').textContent = 'Code: ' + code;
+      document.getElementById('courseName').textContent = 'Name: ' + name;
+      document.getElementById('courseSlots').textContent = 'Available Slots: ' + slots;
+    
+      infoDiv.style.display = 'block';
+    } else {
+      infoDiv.style.display = 'none';
+    }
+}
+
+function confirmDrop() {
+  const studentSelect = document.getElementById('studentSelect');
+  const courseSelect = document.getElementById('courseSelect');
+  
+  if (!studentSelect.value || !courseSelect.value) {
+    alert('Please select both a student and a course.');
+    return false;
+  }
+  
+  const studentName = studentSelect.options[studentSelect.selectedIndex].getAttribute('data-username');
+  const courseName = courseSelect.options[courseSelect.selectedIndex].getAttribute('data-name');
+  
+  return confirm(`Are you sure you want to drop ${studentName} from ${courseName}?\n\nThis action cannot be undone.`);
+}
+
+async function viewEnrolledStudents() {
+  const courseSelect = document.getElementById('courseSelect');
+  const courseId = courseSelect.value;
+  
+  if (!courseId) {
+    alert('Please select a course first.');
+    return;
+  }
+  
+  const courseName = courseSelect.options[courseSelect.selectedIndex].getAttribute('data-name');
+  
+  // Show modal
+  const modal = new bootstrap.Modal(document.getElementById('enrolledStudentsModal'));
+  modal.show();
+  
+  // Update modal title
+  document.querySelector('#enrolledStudentsModal .modal-title').innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-list-ul me-2" viewBox="0 0 16 16">
+      <path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
+    </svg>
+    Students Enrolled in: ${courseName}
+  `;
+  
+  try {
+    const response = await fetch(`/api/course-enrollments/${courseId}`);
+    const enrollments = await response.json();
+    
+    const listDiv = document.getElementById('enrolledStudentsList');
+    
+    if (enrollments.length === 0) {
+      listDiv.innerHTML = `
+        <div class="alert alert-info">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-circle me-2" viewBox="0 0 16 16">
+            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+          </svg>
+          No students are currently enrolled in this course.
+        </div>
+      `;
+    } else {
+      let html = `
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Student ID</th>
+                <th>Enrolled Date</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+      
+      enrollments.forEach(enrollment => {
+        const enrollDate = new Date(enrollment.enrolledAt).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        html += `
+          <tr>
+            <td>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-badge me-2" viewBox="0 0 16 16">
+                <path d="M6.5 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3zM11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
+                <path d="M4.5 0A2.5 2.5 0 0 0 2 2.5V14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2.5A2.5 2.5 0 0 0 11.5 0h-7zM3 2.5A1.5 1.5 0 0 1 4.5 1h7A1.5 1.5 0 0 1 13 2.5v10.795a4.2 4.2 0 0 0-.776-.492C11.392 12.387 10.063 12 8 12s-3.392.387-4.224.803a4.2 4.2 0 0 0-.776.492V2.5z"/>
+              </svg>
+              <strong>Student ID: ${enrollment.userId}</strong>
+            </td>
+            <td>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-calendar-event me-2" viewBox="0 0 16 16">
+                <path d="M11 6.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1z"/>
+                <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/>
+              </svg>
+              ${enrollDate}
+            </td>
+          </tr>
+        `;
+      });
+      
+      html += `
+            </tbody>
+          </table>
+        </div>
+        <div class="alert alert-light border">
+          <strong>Total Enrolled:</strong> ${enrollments.length} student(s)
+        </div>
+      `;
+      
+      listDiv.innerHTML = html;
+    }
+  } catch (error) {
+    console.error('Error loading enrollments:', error);
+    document.getElementById('enrolledStudentsList').innerHTML = `
+      <div class="alert alert-danger">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-triangle me-2" viewBox="0 0 16 16">
+          <path d="M7.938 2.016A.13.13 0 0 1 8.002 2a.13.13 0 0 1 .063.016.146.146 0 0 1 .054.057l6.857 11.667c.036.06.035.124.002.183a.163.163 0 0 1-.054.06.116.116 0 0 1-.066.017H1.146a.115.115 0 0 1-.066-.017.163.163 0 0 1-.054-.06.176.176 0 0 1 .002-.183L7.884 2.073a.147.147 0 0 1 .054-.057zm1.044-.45a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566z"/>
+          <path d="M7.002 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 5.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995z"/>
+        </svg>
+        Failed to load enrolled students. Please try again.
+      </div>
+    `;
+  }
+}

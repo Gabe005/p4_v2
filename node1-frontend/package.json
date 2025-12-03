@@ -10,12 +10,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@grpc/grpc-js": "^1.14.1",
+    "@grpc/grpc-js": "^1.14.2",
     "@grpc/proto-loader": "^0.8.0",
     "axios": "^1.13.2",
     "cookie-parser": "^1.4.7",
     "ejs": "^3.1.10",
-    "express": "^5.1.0"
+    "express": "^5.2.1"
   },
   "description": ""
 }

@@ -297,7 +297,7 @@ app.delete('/api/courses/:courseId', (req, res) => {
 
 startGrpcServer();
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log('========================================');
   console.log(`✓ Course service running on port ${PORT}`);
   console.log('========================================');

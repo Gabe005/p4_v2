@@ -14,13 +14,13 @@ db.serialize(() => {
   )`);
 
   // Insert default users
-  const password = bcrypt.hashSync('password123', 10);
+  const password = bcrypt.hashSync('pass12345', 10);
   
   db.run(`INSERT OR IGNORE INTO users (id, username, password, role, email) VALUES 
-    (1, 'student1', ?, 'student', 'student1@example.com'),
-    (2, 'student2', ?, 'student', 'student2@example.com'),
-    (3, 'faculty1', ?, 'faculty', 'faculty1@example.com'),
-    (4, 'admin1', ?, 'admin', 'admin1@example.com')
+    (1, 'Gabriele', ?, 'student', 'Gabe@gmail.com'),
+    (2, 'Jack', ?, 'student', 'Jack@gmail.com'),
+    (3, 'Jonathan', ?, 'faculty', 'JM@gmail.com'),
+    (4, 'Admin', ?, 'admin', 'admin@gmail.com')
   `, [password, password, password, password]);
 });
 

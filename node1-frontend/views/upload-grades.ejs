@@ -5,40 +5,234 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upload Grades - Enrollment System</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .student-info {
+      background-color: #f8f9fa;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+      display: none;
+    }
+    .course-info {
+      background-color: #e7f3ff;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
 </head>
 <body>
   <%- include('partials/navbar', { user }) %>
   <div class="container mt-4">
     <h2>Upload Grades</h2>
+    <p class="text-muted">Select a student and course to assign a grade</p>
     
-    <div class="card mt-4">
+    <% if (success) { %>
+      <div class="alert alert-success alert-dismissible fade show">
+        <% if (success === 'grade_uploaded') { %>
+          <strong>Success!</strong> Grade uploaded successfully.
+        <% } %>
+      </div>
+    <% } %>
+    
+    <% if (error) { %>
+      <div class="alert alert-danger alert-dismissible fade show">
+        <strong>Error!</strong> <%= error %>
+      </div>
+    <% } %>
+
+    <!-- Upload Grade Form -->
+    <div class="card mb-4">
+      <div class="card-header bg-success text-white">
+        <h5 class="mb-0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-clipboard-check me-2" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z"/>
+            <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+            <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+          </svg>
+          Assign Grade to Student
+        </h5>
+      </div>
       <div class="card-body">
-        <form method="POST" action="/upload-grades">
-          <div class="mb-3">
-            <label class="form-label">Student ID</label>
-            <input type="number" class="form-control" name="studentId" required>
-            <small class="text-muted">Enter the student's user ID</small>
+        <form method="POST" action="/upload-grades" id="gradeForm">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person me-1" viewBox="0 0 16 16">
+                  <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
+                </svg>
+                Select Student *
+              </label>
+              <select class="form-select" name="studentId" id="studentSelect" required onchange="showStudentInfo()">
+                <option value="">-- Choose a student --</option>
+                <% students.forEach(student => { %>
+                  <option value="<%= student.id %>" data-username="<%= student.username %>" data-email="<%= student.email %>">
+                    <%= student.username %> <% if (student.email) { %>(ID: <%= student.id %>)<% } %>
+                  </option>
+                <% }) %>
+              </select>
+              <div id="studentInfo" class="student-info">
+                <small>
+                  <strong>Selected Student:</strong><br>
+                  <span id="studentUsername"></span><br>
+                  <span id="studentEmail"></span><br>
+                  <span id="studentId"></span>
+                </small>
+              </div>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-book me-1" viewBox="0 0 16 16">
+                  <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811V2.828zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z"/>
+                </svg>
+                Select Course *
+              </label>
+              <select class="form-select" name="courseId" id="courseSelect" required onchange="showCourseInfo()">
+                <option value="">-- Choose a course --</option>
+                <% courses.forEach(course => { %>
+                  <option value="<%= course.id %>" data-code="<%= course.code %>" data-name="<%= course.name %>" data-description="<%= course.description %>">
+                    <%= course.code %> - <%= course.name %>
+                  </option>
+                <% }) %>
+              </select>
+              <div id="courseInfo" class="course-info">
+                <small>
+                  <strong>Course Details:</strong><br>
+                  <span id="courseCode"></span><br>
+                  <span id="courseName"></span><br>
+                  <span id="courseDescription"></span>
+                </small>
+              </div>
+            </div>
           </div>
           
-          <div class="mb-3">
-            <label class="form-label">Course</label>
-            <select class="form-control" name="courseId" required>
-              <option value="">Select a course</option>
-              <% courses.forEach(course => { %>
-                <option value="<%= course.id %>"><%= course.code %> - <%= course.name %></option>
-              <% }) %>
-            </select>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-award me-1" viewBox="0 0 16 16">
+                  <path d="M9.669.864 8 0 6.331.864l-1.858.282-.842 1.68-1.337 1.32L2.6 6l-.306 1.854 1.337 1.32.842 1.68 1.858.282L8 12l1.669-.864 1.858-.282.842-1.68 1.337-1.32L13.4 6l.306-1.854-1.337-1.32-.842-1.68L9.669.864zm1.196 1.193.684 1.365 1.086 1.072L12.387 6l.248 1.506-1.086 1.072-.684 1.365-1.51.229L8 10.874l-1.355-.702-1.51-.229-.684-1.365-1.086-1.072L3.614 6l-.25-1.506 1.087-1.072.684-1.365 1.51-.229L8 1.126l1.356.702 1.509.229z"/>
+                  <path d="M4 11.794V16l4-1 4 1v-4.206l-2.018.306L8 13.126 6.018 12.1 4 11.794z"/>
+                </svg>
+                Grade *
+              </label>
+              <input type="text" class="form-control" name="grade" required>
+            </div>
+            
+            <div class="col-md-6 mb-3 d-flex align-items-end">
+              <button type="submit" class="btn btn-success w-100">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-circle me-2" viewBox="0 0 16 16">
+                  <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                  <path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z"/>
+                </svg>
+                Submit Grade
+              </button>
+            </div>
           </div>
-          
-          <div class="mb-3">
-            <label class="form-label">Grade</label>
-            <input type="text" class="form-control" name="grade" required placeholder="e.g., A, B+, 95">
-          </div>
-          
-          <button type="submit" class="btn btn-primary">Submit Grade</button>
         </form>
       </div>
     </div>
+
+    <!-- Quick Reference -->
+    <div class="card">
+      <div class="card-header bg-info text-white">
+        <h5 class="mb-0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle me-2" viewBox="0 0 16 16">
+            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+          </svg>
+          Available Students & Courses
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6">
+            <h6 class="text-primary">Students (<%= students.length %>)</h6>
+            <% if (students.length > 0) { %>
+              <ul class="list-group list-group-flush">
+                <% students.slice(0, 5).forEach(student => { %>
+                  <li class="list-group-item py-2">
+                    <strong><%= student.username %></strong> 
+                    <small class="text-muted">(ID: <%= student.id %>)</small>
+                  </li>
+                <% }) %>
+                <% if (students.length > 5) { %>
+                  <li class="list-group-item py-2 text-muted">
+                    <em>... and <%= students.length - 5 %> more</em>
+                  </li>
+                <% } %>
+              </ul>
+            <% } else { %>
+              <p class="text-muted">No students found</p>
+            <% } %>
+          </div>
+          <div class="col-md-6">
+            <h6 class="text-success">Courses (<%= courses.length %>)</h6>
+            <% if (courses.length > 0) { %>
+              <ul class="list-group list-group-flush">
+                <% courses.slice(0, 5).forEach(course => { %>
+                  <li class="list-group-item py-2">
+                    <strong><%= course.code %></strong> - <%= course.name %>
+                  </li>
+                <% }) %>
+                <% if (courses.length > 5) { %>
+                  <li class="list-group-item py-2 text-muted">
+                    <em>... and <%= courses.length - 5 %> more</em>
+                  </li>
+                <% } %>
+              </ul>
+            <% } else { %>
+              <p class="text-muted">No courses found</p>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
+
+  <script>
+    function showStudentInfo() {
+      const select = document.getElementById('studentSelect');
+      const option = select.options[select.selectedIndex];
+      const infoDiv = document.getElementById('studentInfo');
+      
+      if (option.value) {
+        const username = option.getAttribute('data-username');
+        const email = option.getAttribute('data-email');
+        const id = option.value;
+        
+        document.getElementById('studentUsername').textContent = 'Username: ' + username;
+        document.getElementById('studentEmail').textContent = 'Email: ' + (email || 'N/A');
+        document.getElementById('studentId').textContent = 'Student ID: ' + id;
+        
+        infoDiv.style.display = 'block';
+      } else {
+        infoDiv.style.display = 'none';
+      }
+    }
+    
+    function showCourseInfo() {
+      const select = document.getElementById('courseSelect');
+      const option = select.options[select.selectedIndex];
+      const infoDiv = document.getElementById('courseInfo');
+      
+      if (option.value) {
+        const code = option.getAttribute('data-code');
+        const name = option.getAttribute('data-name');
+        const description = option.getAttribute('data-description');
+        
+        document.getElementById('courseCode').textContent = 'Code: ' + code;
+        document.getElementById('courseName').textContent = 'Name: ' + name;
+        document.getElementById('courseDescription').textContent = 'Description: ' + (description || 'N/A');
+        
+        infoDiv.style.display = 'block';
+      } else {
+        infoDiv.style.display = 'none';
+      }
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

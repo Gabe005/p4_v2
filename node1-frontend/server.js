@@ -6,11 +6,9 @@ const grpcClients = require('./grpc-clients');
 const app = express();
 const PORT = 3000;
 
-// For VM deployment, update these to actual VM IPs
-// For localhost testing, keep as localhost
-const AUTH_SERVICE = 'http://localhost:3001';
-const COURSE_SERVICE = 'http://localhost:3002';
-const GRADE_SERVICE = 'http://localhost:3003';
+const AUTH_SERVICE = process.env.AUTH_SERVICE || 'http://172.25.0.2:3001';
+const COURSE_SERVICE = process.env.COURSE_SERVICE || 'http://172.25.0.3:3002';
+const GRADE_SERVICE = process.env.GRADE_SERVICE || 'http://172.25.0.4:3003';
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -183,29 +181,33 @@ app.get('/grades', authMiddleware, async (req, res) => {
 
 // Upload grades page
 app.get('/upload-grades', authMiddleware, async (req, res) => {
-  if (req.user.role !== 'faculty') {
-    return res.redirect('/dashboard');
-  }
+    if (req.user.role !== 'faculty') {
+      return res.redirect('/dashboard');
+    }
 
-  try {
-    const coursesResponse = await grpcClients.courses.getAllCourses({});
-    res.render('upload-grades', { 
-      user: req.user, 
-      courses: coursesResponse.courses || [],
-      success: req.query.success,
-      error: req.query.error
-    });
-  } catch (error) {
-    console.error('[gRPC] Error loading courses:', error.message);
-    res.render('upload-grades', { 
-      user: req.user, 
-      courses: [], 
-      error: 'Failed to load courses' 
-    });
-  }
-});
+    try {
+      const coursesResponse = await grpcClients.courses.getAllCourses({});
+      const studentsResponse = await grpcClients.auth.getAllStudents({});
+      
+      res.render('upload-grades', { 
+        user: req.user, 
+        courses: coursesResponse.courses || [],
+        students: studentsResponse.users || [],
+        success: req.query.success,
+        error: req.query.error
+      });
+    } catch (error) {
+      console.error('[gRPC] Error loading data:', error.message);
+      res.render('upload-grades', { 
+        user: req.user, 
+        courses: [], 
+        students: [],
+        error: 'Failed to load data' 
+      });
+    }
+  });
 
-// Upload grade using gRPC
+// Upload grade using gRPC - now with dropdown selection
 app.post('/upload-grades', authMiddleware, async (req, res) => {
   if (req.user.role !== 'faculty') {
     return res.redirect('/dashboard');
@@ -224,7 +226,7 @@ app.post('/upload-grades', authMiddleware, async (req, res) => {
     }
     
     console.log('[gRPC] Grade uploaded successfully');
-    res.redirect('/upload-grades?success=true');
+    res.redirect('/upload-grades?success=grade_uploaded');
   } catch (error) {
     console.error('[gRPC] Upload grade error:', error.message);
     res.redirect('/upload-grades?error=upload_failed');
@@ -355,6 +357,7 @@ app.post('/delete-course', authMiddleware, async (req, res) => {
 });
 
 // Faculty - Manage Enrollments using gRPC
+// Faculty - Manage Enrollments with dropdowns
 app.get('/manage-enrollments', authMiddleware, async (req, res) => {
   if (req.user.role !== 'faculty') {
     return res.redirect('/dashboard');
@@ -362,18 +365,22 @@ app.get('/manage-enrollments', authMiddleware, async (req, res) => {
 
   try {
     const coursesResponse = await grpcClients.courses.getAllCourses({});
+    const studentsResponse = await grpcClients.auth.getAllStudents({});
+    
     res.render('manage-enrollments', { 
       user: req.user, 
       courses: coursesResponse.courses || [],
+      students: studentsResponse.users || [],
       success: req.query.success,
       error: req.query.error
     });
   } catch (error) {
-    console.error('[gRPC] Error loading courses:', error.message);
+    console.error('[gRPC] Error loading data:', error.message);
     res.render('manage-enrollments', { 
       user: req.user, 
       courses: [], 
-      error: 'Failed to load courses' 
+      students: [],
+      error: 'Failed to load data' 
     });
   }
 });
@@ -403,8 +410,8 @@ app.post('/drop-student', authMiddleware, async (req, res) => {
   }
 });
 
-// Get students in course (AJAX endpoint for faculty)
-app.get('/course-students/:courseId', authMiddleware, async (req, res) => {
+// Get enrolled students for a specific course (AJAX endpoint)
+app.get('/api/course-enrollments/:courseId', authMiddleware, async (req, res) => {
   if (req.user.role !== 'faculty' && req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Unauthorized' });
   }
@@ -416,8 +423,8 @@ app.get('/course-students/:courseId', authMiddleware, async (req, res) => {
     
     res.json(response.students || []);
   } catch (error) {
-    console.error('[gRPC] Error loading course students:', error.message);
-    res.status(500).json({ error: 'Failed to load students' });
+    console.error('[gRPC] Error loading course enrollments:', error.message);
+    res.status(500).json({ error: 'Failed to load enrollments' });
   }
 });
 

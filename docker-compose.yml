@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  # Auth Service
+  auth-service:
+    build:
+      context: ./node2-auth
+      dockerfile: Dockerfile
+    container_name: enrollment-auth
+    ports:
+      - "3001:3001"
+      - "50051:50051"
+    volumes:
+      - ./node2-auth:/app
+      - /app/node_modules
+      - ./protos:/app/../protos
+    networks:
+      enrollment-network:
+        ipv4_address: 172.25.0.2
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Course Service
+  course-service:
+    build:
+      context: ./node3-courses
+      dockerfile: Dockerfile
+    container_name: enrollment-courses
+    ports:
+      - "3002:3002"
+      - "50052:50052"
+    volumes:
+      - ./node3-courses:/app
+      - /app/node_modules
+      - ./protos:/app/../protos
+    networks:
+      enrollment-network:
+        ipv4_address: 172.25.0.3
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Grade Service
+  grade-service:
+    build:
+      context: ./node4-grades
+      dockerfile: Dockerfile
+    container_name: enrollment-grades
+    ports:
+      - "3003:3003"
+      - "50053:50053"
+    volumes:
+      - ./node4-grades:/app
+      - /app/node_modules
+      - ./protos:/app/../protos
+    networks:
+      enrollment-network:
+        ipv4_address: 172.25.0.4
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend Service
+  frontend:
+    build:
+      context: ./node1-frontend
+      dockerfile: Dockerfile
+    container_name: enrollment-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./node1-frontend:/app
+      - /app/node_modules
+      - ./protos:/app/../protos
+    networks:
+      enrollment-network:
+        ipv4_address: 172.25.0.5
+    depends_on:
+      - auth-service
+      - course-service
+      - grade-service
+    restart: unless-stopped
+
+networks:
+  enrollment-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+          gateway: 172.25.0.1

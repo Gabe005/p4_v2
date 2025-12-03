@@ -130,6 +130,15 @@ app.get('/api/auth/users', (req, res) => {
   });
 });
 
+app.get('/api/auth/students', (req, res) => {
+  db.all('SELECT id, username, email FROM users WHERE role = "student" ORDER BY username', (err, students) => {
+    if (err) {
+      return res.status(500).json({ error: 'Failed to fetch students' });
+    }
+    res.json(students);
+  });
+});
+
 
 // Health check
 app.get('/health', (req, res) => {
@@ -138,7 +147,7 @@ app.get('/health', (req, res) => {
 
 startGrpcServer();
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log('========================================');
   console.log(`✓ Auth service running on port ${PORT}`);
   console.log(`✓ Test at: http://localhost:${PORT}/health`);

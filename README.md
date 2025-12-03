@@ -21,18 +21,19 @@ A fault-tolerant, distributed web application built with Node.js and Express, im
 ## Prerequisites
 
 - Node.js v14+
-- npm or yarn
-- 4 VMs or separate machines (or use localhost for testing)
+- npm 
+- Docker.desktop
 
 ## Quick Start
 
 1. Clone or download the project
-2. Run setup script: `setup.bat` (Windows)
+2. Run setup script: `setup.bat` 
 3. Start all services: `start-all.bat`
-4. Access the application at `http://localhost:3000`
+4. Build all containers: `docker-compose build`
+5. Start all services: `docker-compose up -d`
 
 ## Default Test Accounts
 
-- **Student:** username: `student1`, password: `password123`
-- **Faculty:** username: `faculty1`, password: `password123`
-- **Admin:** username: `admin1`, password: `password123`
+- **Student:** username: `Gabriele`, password: `passw12345`
+- **Faculty:** username: `Jonathan`, password: `pass12345`
+- **Admin:** username: `Admin`, password: `pass12345`

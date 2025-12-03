@@ -21,6 +21,27 @@ const authProto = grpc.loadPackageDefinition(packageDefinition).auth;
 
 // Implement gRPC service methods
 const authService = {
+  GetAllStudents: (call, callback) => {
+    console.log('[gRPC] Get all students request');
+
+    db.all('SELECT id, username, email FROM users WHERE role = "student" ORDER BY username', (err, students) => {
+      if (err) {
+        console.error('[gRPC] Error fetching students:', err);
+        return callback(null, { users: [] });
+      }
+
+      const studentList = students.map(s => ({
+        id: s.id,
+        username: s.username,
+        role: 'student',
+        email: s.email || '',
+        createdAt: ''
+      }));
+
+      callback(null, { users: studentList });
+    });
+  },
+  
   Login: (call, callback) => {
     const { username, password } = call.request;
     

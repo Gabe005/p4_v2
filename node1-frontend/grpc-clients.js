@@ -7,6 +7,10 @@ const authProtoPath = path.join(__dirname, '../protos/auth.proto');
 const coursesProtoPath = path.join(__dirname, '../protos/courses.proto');
 const gradesProtoPath = path.join(__dirname, '../protos/grades.proto');
 
+const AUTH_GRPC = process.env.AUTH_GRPC || '172.25.0.2:50051';
+const COURSE_GRPC = process.env.COURSE_GRPC || '172.25.0.3:50052';
+const GRADE_GRPC = process.env.GRADE_GRPC || '172.25.0.4:50053';
+
 const packageDefinition = {
   keepCase: true,
   longs: String,
@@ -19,7 +23,7 @@ const packageDefinition = {
 const authPackageDefinition = protoLoader.loadSync(authProtoPath, packageDefinition);
 const authProto = grpc.loadPackageDefinition(authPackageDefinition).auth;
 const authClient = new authProto.AuthService(
-  'localhost:50051',
+  AUTH_GRPC,
   grpc.credentials.createInsecure()
 );
 
@@ -27,7 +31,7 @@ const authClient = new authProto.AuthService(
 const coursesPackageDefinition = protoLoader.loadSync(coursesProtoPath, packageDefinition);
 const coursesProto = grpc.loadPackageDefinition(coursesPackageDefinition).courses;
 const coursesClient = new coursesProto.CourseService(
-  'localhost:50052',
+  COURSE_GRPC,
   grpc.credentials.createInsecure()
 );
 
@@ -35,7 +39,7 @@ const coursesClient = new coursesProto.CourseService(
 const gradesPackageDefinition = protoLoader.loadSync(gradesProtoPath, packageDefinition);
 const gradesProto = grpc.loadPackageDefinition(gradesPackageDefinition).grades;
 const gradesClient = new gradesProto.GradeService(
-  'localhost:50053',
+  GRADE_GRPC,
   grpc.credentials.createInsecure()
 );
 
@@ -60,7 +64,8 @@ module.exports = {
     login: promisifyGrpcCall(authClient, 'Login'),
     verifyToken: promisifyGrpcCall(authClient, 'VerifyToken'),
     register: promisifyGrpcCall(authClient, 'Register'),
-    getAllUsers: promisifyGrpcCall(authClient, 'GetAllUsers')
+    getAllUsers: promisifyGrpcCall(authClient, 'GetAllUsers'),
+    getAllStudents: promisifyGrpcCall(authClient, 'GetAllStudents')
   },
   courses: {
     getAllCourses: promisifyGrpcCall(coursesClient, 'GetAllCourses'),

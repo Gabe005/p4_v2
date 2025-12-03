@@ -80,7 +80,7 @@ app.get('/health', (req, res) => {
 
 startGrpcServer();
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log('========================================');
   console.log(`✓ Grade service running on port ${PORT}`);
   console.log('========================================');
