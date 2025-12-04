@@ -34,6 +34,6 @@ A fault-tolerant, distributed web application built with Node.js and Express, im
 
 ## Default Test Accounts
 
-- **Student:** username: `Gabriele`, password: `passw12345`
+- **Student:** username: `Gabriele`, password: `pass12345`
 - **Faculty:** username: `Jonathan`, password: `pass12345`
 - **Admin:** username: `Admin`, password: `pass12345`
