@@ -121,6 +121,8 @@ const authService = {
 
   Register: (call, callback) => {
     const { username, password, email, role } = call.request;
+    const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])(?=.{8,}).*$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.com$/;
 
     console.log('[gRPC] Registration attempt:', username);
 
@@ -129,6 +131,20 @@ const authService = {
         success: false,
         error: 'Username, password, and role are required'
       });
+    }
+
+    if(!passwordRegex.test(password)){
+      return callback(null, {
+        success: false,
+        error: 'Password has to contain an Uppercase, number, special character, and be 8 characters long'
+      });      
+    }
+
+    if(!emailRegex.test(email)){
+      return callback(null, {
+        success: false,
+        error: 'Invalid Email'
+      });      
     }
 
     const hashedPassword = bcrypt.hashSync(password, 10);
