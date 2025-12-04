@@ -2,9 +2,22 @@ const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 const path = require('path');
 const db = require('./database');
+const { isInt16Array } = require('util/types');
 
-const PROTO_PATH = path.join(__dirname, '../protos/grades.proto');
-const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
+const COURSE_PROTO_PATH = path.join(__dirname, '../protos/courses.proto');
+const coursePackageDefinition = protoLoader.loadSync(COURSE_PROTO_PATH, {
+  keepCase: true,
+  longs: String,
+  enums: String,
+  defaults: true,
+  oneofs: true
+});
+const coursesProto = grpc.loadPackageDefinition(coursePackageDefinition).courses;
+
+const courseClient = new coursesProto.CourseService('course-service:50052', grpc.credentials.createInsecure());
+
+const GRADES_PROTO_PATH = path.join(__dirname, '../protos/grades.proto');
+const packageDefinition = protoLoader.loadSync(GRADES_PROTO_PATH, {
   keepCase: true,
   longs: String,
   enums: String,
@@ -21,9 +34,9 @@ const gradeService = {
 
     db.all(
       `SELECT g.*, 
-       'CS' || CAST(g.courseId AS TEXT) as courseCode,
-       'Course ' || CAST(g.courseId AS TEXT) as courseName
-       FROM grades g WHERE g.studentId = ?`,
+        'CS' || CAST(g.courseId AS TEXT) as courseCode,
+        'Course ' || CAST(g.courseId AS TEXT) as courseName
+        FROM grades g WHERE g.studentId = ?`,
       [userId],
       (err, grades) => {
         if (err) {
@@ -50,26 +63,54 @@ const gradeService = {
     const { studentId, courseId, grade, facultyId } = call.request;
     console.log('[gRPC] Upload grade - Faculty:', facultyId, 'Student:', studentId, 'Course:', courseId);
 
-    db.run(
-      `INSERT OR REPLACE INTO grades (studentId, courseId, grade, facultyId) 
-       VALUES (?, ?, ?, ?)`,
-      [studentId, courseId, grade, facultyId],
-      function(err) {
-        if (err) {
-          return callback(null, {
-            success: false,
-            message: 'Failed to upload grade'
-          });
-        }
-
-        console.log('[gRPC] ✓ Grade uploaded');
-        callback(null, {
-          success: true,
-          message: 'Grade uploaded successfully',
-          gradeId: this.lastID
+    courseClient.GetEnrolledCourses({ userId: studentId }, (err, response) => {
+      if (err) {
+        console.error('[gRPC] Error checking enrollment:', err.message);
+        return callback(null, {
+          success: false,
+          message: `Internal error: Cannot verify enrollment status. Error: ${err.details}`
         });
       }
-    );
+
+      const isEnrolled = response.courses.some(course => course.id === courseId);
+
+      if (!isEnrolled) {
+        console.log(`[gRPC] X Student ${studentId} is NOT ENROLLED in course ${courseId}. Grade upload blocked.`);
+        return callback(null, {
+          success: false,
+          message: 'Student is not enrolled in this course.'
+        });
+      }
+
+      if (!isInt16Array(grade) || grade >100 || grade < 0){
+        console.log(`Grade does not fit the input validation standard`);
+        return callback(null, {
+          success: false,
+          message: 'Grade inputted should be only from 0 - 100.'
+        });        
+      }
+
+      db.run(
+        `INSERT OR REPLACE INTO grades (studentId, courseId, grade, facultyId) 
+         VALUES (?, ?, ?, ?)`,
+        [studentId, courseId, grade, facultyId],
+        function(err) {
+          if (err) {
+            return callback(null, {
+              success: false,
+              message: 'Failed to upload grade to database'
+            });
+          }
+
+          console.log('[gRPC] ✓ Grade uploaded');
+          callback(null, {
+            success: true,
+            message: 'Grade uploaded successfully',
+            gradeId: this.lastID
+          });
+        }
+      );
+    });
   },
 
   GetCourseGrades: (call, callback) => {

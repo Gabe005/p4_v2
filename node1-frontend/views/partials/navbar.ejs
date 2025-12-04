@@ -22,6 +22,21 @@
           <a class="nav-link" href="/upload-grades">Upload Grades</a>
         </li>
         <% } %>
+                <% if (user.role === 'faculty') { %>
+        <li class="nav-item">
+          <a class="nav-link" href="/manage-enrollments">Manage Enrollment</a>
+        </li>
+        <% } %>
+        <% if (user.role === 'admin') { %>
+        <li class="nav-item">
+          <a class="nav-link" href="/manage-users">Manage Users</a>
+        </li>
+        <% } %>
+                <% if (user.role === 'admin') { %>
+        <li class="nav-item">
+          <a class="nav-link" href="/manage-courses">Manage Courses</a>
+        </li>
+        <% } %>
       </ul>
       <ul class="navbar-nav ms-auto">
         <li class="nav-item">

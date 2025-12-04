@@ -1,5 +1,4 @@
 module.exports = {
-  // Update these with actual node IPs/hostnames
   AUTH_SERVICE: process.env.AUTH_SERVICE || 'http://localhost:3001',
   COURSE_SERVICE: process.env.COURSE_SERVICE || 'http://localhost:3002',
   GRADE_SERVICE: process.env.GRADE_SERVICE || 'http://localhost:3003',
