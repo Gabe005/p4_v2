@@ -63,6 +63,8 @@ const gradeService = {
     const { studentId, courseId, grade, facultyId } = call.request;
     console.log('[gRPC] Upload grade - Faculty:', facultyId, 'Student:', studentId, 'Course:', courseId);
 
+    const trueGrade = Number(grade);
+
     courseClient.GetEnrolledCourses({ userId: studentId }, (err, response) => {
       if (err) {
         console.error('[gRPC] Error checking enrollment:', err.message);
@@ -82,11 +84,19 @@ const gradeService = {
         });
       }
 
-      if (!isInt16Array(grade) || grade >100 || grade < 0){
+      if (typeof trueGrade !== 'number' || isNaN(trueGrade)){
+        console.log(`It's not an integer`);
+        return callback(null, {
+          success: false,
+          message: 'Grade inputted should be an integer.'
+        });        
+      }
+
+      if (!Number.isInteger(trueGrade) || trueGrade > 100 || trueGrade < 0){
         console.log(`Grade does not fit the input validation standard`);
         return callback(null, {
           success: false,
-          message: 'Grade inputted should be only from 0 - 100.'
+          message: 'Grade inputted should be an integer from 0 - 100.'
         });        
       }
 
